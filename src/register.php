@@ -8,21 +8,10 @@ $successMessage = "";
 // Instantiate Auth
 $auth = new Auth($pdo);
 
-// Generate CSRF Token
-$csrfToken = $auth->generateCsrfToken();
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST["email"] ?? "";
     $username = $_POST["username"] ?? "";
     $password = $_POST["password"] ?? "";
-    $csrfTokenInput = $_POST["csrf_token"] ?? "";
-
-    // Validate CSRF Token
-    try {
-        $auth->validateCsrfToken($csrfTokenInput); 
-    } catch (Exception $e) {
-        $errorMessage = "Invalid CSRF token.";
-    }
 
     if (empty($email) || empty($username) || empty($password)) {
         $errorMessage = "Username, email, and password are required.";
@@ -31,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("SELECT id FROM admin WHERE email = :email");
             $stmt->execute([':email' => $email]);
             $admin = $stmt->fetch();
-            
+
             if ($admin) {
                 $errorMessage = "Admin already exists.";
             } else {
@@ -39,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $sql = "INSERT INTO admin (email, username, password) VALUES (:email, :username, :password)";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([':email' => $email, ':username' => $username, ':password' => $passwordHash]);
-                
+
                 $successMessage = "Registration successful. You can now log in.";
                 header("Location: login.php");
                 exit;
@@ -50,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

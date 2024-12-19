@@ -3,25 +3,13 @@ require_once __DIR__ . '/../config/connection.php';
 require_once __DIR__ . '/../modules/Auth.php';
 
 $errorMessage = "";
-$successMessage = "";
 
 // Instantiate Auth
 $auth = new Auth($pdo);
 
-// Generate CSRF Token
-$csrfToken = $auth->generateCsrfToken();
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST["email"] ?? "";
     $password = $_POST["password"] ?? "";
-    $csrfTokenInput = $_POST["csrf_token"] ?? "";
-
-    // Validate CSRF Token
-    try {
-        $auth->validateCsrfToken($csrfTokenInput);
-    } catch (Exception $e) {
-        $errorMessage = "Invalid CSRF token.";
-    }
 
     if (empty($email) || empty($password)) {
         $errorMessage = "Email and password are required.";
@@ -30,20 +18,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("SELECT id, password FROM admin WHERE email = :email");
             $stmt->execute([':email' => $email]);
             $admin = $stmt->fetch();
-            
+
             if (!$admin || !$auth->verifyPassword($password, $admin['password'])) {
-                $errorMessage = "Invalid credentials. Please try again.";
+                http_response_code(401);
+                echo json_encode(['error' => true, 'message' => 'Invalid credentials']);
+                exit;
             } else {
+                // Save session and generate token
                 $_SESSION['admin_id'] = $admin['id'];
-                header("Location: index.php");
+                $csrfToken = $auth->generateCsrfToken();
+
+                // Return success response with token
+                http_response_code(200);
+                echo json_encode(['message' => 'Login successful', 'csrf_token' => $csrfToken]);
                 exit;
             }
         } catch (Exception $e) {
-            $errorMessage = "Error: " . $e->getMessage();
+            http_response_code(500);
+            echo json_encode(['error' => true, 'message' => 'Server error: ' . $e->getMessage()]);
+            exit;
         }
     }
 }
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -56,12 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container my-5">
         <h2>Login</h2>
-        
-        <?php if (!empty($errorMessage)) : ?>
-            <div class="alert alert-warning"><?= $errorMessage ?></div>
-        <?php endif; ?>
 
-        <form method="post">
+        <form id="loginForm">
             <div class="mb-3">
                 <label for="email" class="form-label">Email</label>
                 <input type="text" class="form-control" name="email" id="email" required>
@@ -70,11 +65,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="password" class="form-label">Password</label>
                 <input type="password" class="form-control" name="password" id="password" required>
             </div>
-            <!-- CSRF Token Input -->
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
             <button type="submit" class="btn btn-primary">Login</button>
-            <a href="register.php" class="btn btn-outline-primary">Register</a>
         </form>
     </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault(); 
+
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/routes.php/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Save CSRF token if needed
+                    localStorage.setItem('csrf_token', result.csrf_token);
+
+                    // Redirect to index.php
+                    window.location.href = '/index.php';
+                } else {
+                    alert(result.message || 'Login failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            }
+        });
+    </script>
 </body>
 </html>
+

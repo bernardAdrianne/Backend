@@ -4,7 +4,6 @@ require_once __DIR__ . '/../modules/Post.php';
 require_once __DIR__ . '/../config/connection.php';
 require_once __DIR__ . '/../modules/Auth.php';
 
-
 // Instantiate Auth
 $auth = new Auth($pdo);
 
@@ -18,9 +17,9 @@ if (!$auth->isAuthenticated()) {
 $students = getAllStudents($pdo);
 
 // Handle deletion
-if (isset($_GET['id'])) {
+if (isset($_GET['id']) && isset($_GET['csrf_token'])) {
     $id = $_GET['id'];
-    $csrfToken = $_GET['csrf_token'] ?? '';
+    $csrfToken = $_GET['csrf_token'];
 
     try {
         $auth->validateCsrfToken($csrfToken); 
