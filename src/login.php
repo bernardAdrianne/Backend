@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../config/connection.php';
 require_once __DIR__ . '/../modules/Auth.php';
 
+session_start();
+
 $errorMessage = "";
 
 // Instantiate Auth
@@ -21,28 +23,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!$admin || !$auth->verifyPassword($password, $admin['password'])) {
                 http_response_code(401);
-                echo json_encode(['error' => true, 'message' => 'Invalid credentials']);
-                exit;
+                $errorMessage = "Invalid credentials.";
             } else {
-                // Save session and generate token
+                // Save session and redirect to index
                 $_SESSION['admin_id'] = $admin['id'];
-                $csrfToken = $auth->generateCsrfToken();
-
-                // Return success response with token
-                http_response_code(200);
-                echo json_encode(['message' => 'Login successful', 'csrf_token' => $csrfToken]);
+                header("Location: index.php");
                 exit;
             }
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(['error' => true, 'message' => 'Server error: ' . $e->getMessage()]);
-            exit;
+            $errorMessage = "Server error: " . $e->getMessage();
         }
     }
 }
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -55,8 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container my-5">
         <h2>Login</h2>
-
-        <form id="loginForm">
+        <?php if ($errorMessage): ?>
+            <div class="alert alert-danger"><?= htmlspecialchars($errorMessage) ?></div>
+        <?php endif; ?>
+        <form method="POST">
             <div class="mb-3">
                 <label for="email" class="form-label">Email</label>
                 <input type="text" class="form-control" name="email" id="email" required>
@@ -66,40 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="password" class="form-control" name="password" id="password" required>
             </div>
             <button type="submit" class="btn btn-primary">Login</button>
+            <a href="register.php" class="btn btn-outline-primary">Register</a>
         </form>
     </div>
-
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', async function (e) {
-            e.preventDefault(); 
-
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-
-            try {
-                const response = await fetch('/routes.php/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    // Save CSRF token if needed
-                    localStorage.setItem('csrf_token', result.csrf_token);
-
-                    // Redirect to index.php
-                    window.location.href = '/index.php';
-                } else {
-                    alert(result.message || 'Login failed');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again.');
-            }
-        });
-    </script>
 </body>
 </html>
-

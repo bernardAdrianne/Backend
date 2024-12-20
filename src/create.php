@@ -16,14 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = $_POST["name"] ?? "";
     $email = $_POST["email"] ?? "";
     $address = $_POST["address"] ?? "";
-    $csrfToken = $_POST["csrf_token"] ?? "";
-
-    // Validate CSRF token
-    try {
-        $auth->validateCsrfToken($csrfToken); 
-    } catch (Exception $e) {
-        $errorMessage = "Invalid CSRF token.";
-    }
 
     if (empty($name) || empty($email) || empty($address)) {
         $errorMessage = "All the fields are required.";
@@ -96,8 +88,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <!-- CSRF Token Field -->
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($auth->generateCsrfToken()); ?>">
 
             <div class="row mb-3">
                 <div class="offset-sm-3 col-sm-3 d-grid">

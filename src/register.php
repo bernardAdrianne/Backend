@@ -75,7 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="password" class="form-control" name="password" id="password" required>
             </div>
             <!-- CSRF Token Input -->
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
             <button type="submit" class="btn btn-primary">Register</button>
             <a href="login.php" class="btn btn-outline-primary">Login</a>
         </form>

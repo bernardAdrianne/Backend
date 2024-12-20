@@ -4,6 +4,8 @@ require_once __DIR__ . '/../modules/Post.php';
 require_once __DIR__ . '/../config/connection.php';
 require_once __DIR__ . '/../modules/Auth.php';
 
+session_start();
+
 // Instantiate Auth
 $auth = new Auth($pdo);
 
@@ -13,27 +15,28 @@ if (!$auth->isAuthenticated()) {
     exit;
 }
 
+// Generate CSRF Token
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Fetch all students
 $students = getAllStudents($pdo);
 
 // Handle deletion
-if (isset($_GET['id']) && isset($_GET['csrf_token'])) {
-    $id = $_GET['id'];
-    $csrfToken = $_GET['csrf_token'];
-
-    try {
-        $auth->validateCsrfToken($csrfToken); 
-    } catch (Exception $e) {
+if (isset($_GET['id'], $_GET['csrf_token'])) {
+    if ($_GET['csrf_token'] !== $_SESSION['csrf_token']) {
         header("Location: /backend/src/index.php?error=Invalid CSRF token");
         exit;
     }
 
+    $id = $_GET['id'];
     try {
         $rowsDeleted = deleteStudent($pdo, $id);
-        if ($rowsDeleted > 0) {
-            header("Location: /backend/src/index.php?message=Student deleted successfully");
+        if ($rowsDeleted['error']) {
+            header("Location: /backend/src/index.php?error=" . urlencode($rowsDeleted['message']));
         } else {
-            header("Location: /backend/src/index.php?error=Student not found or already deleted");
+            header("Location: /backend/src/index.php?message=" . urlencode($rowsDeleted['message']));
         }
     } catch (Exception $e) {
         header("Location: /backend/src/index.php?error=" . urlencode($e->getMessage()));
@@ -41,7 +44,6 @@ if (isset($_GET['id']) && isset($_GET['csrf_token'])) {
     exit;
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -85,7 +87,7 @@ if (isset($_GET['id']) && isset($_GET['csrf_token'])) {
                         <td><?= htmlspecialchars($row['created_at']) ?></td>
                         <td>
                             <a class="btn btn-primary btn-sm" href="/backend/src/edit.php?id=<?= $row['id'] ?>">Edit</a>
-                            <a class="btn btn-danger btn-sm" href="/backend/src/index.php?id=<?= $row['id'] ?>&csrf_token=<?= htmlspecialchars($auth->generateCsrfToken()) ?>">Delete</a>
+                            <a class="btn btn-danger btn-sm" href="/backend/src/index.php?id=<?= $row['id'] ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>">Delete</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
