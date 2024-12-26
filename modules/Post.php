@@ -3,17 +3,11 @@ require_once __DIR__ . '/../config/connection.php';
 require_once __DIR__ . '/Auth.php';
 
 // ADD NEW STUDENT
-function addStudent($pdo, $name, $email, $address) {
+function addStudent($pdo, $name, $email, $address) { 
     try {
-        // Debug: Print input values
-        error_log("Input - Name: $name, Email: $email, Address: $address");
-
         $auth = new Auth($pdo);
 
-        if (empty($name) || empty($email) || empty($address)) {
-            throw new Exception('All fields are required.');
-        }
-
+        // Encrypt data before storing them in the database
         $encryptedName = $auth->encryptData($name);
         error_log("Encrypted Name: $encryptedName");
         $encryptedEmail = $auth->encryptData($email);
@@ -49,6 +43,7 @@ function addStudent($pdo, $name, $email, $address) {
         return ['error' => true, 'message' => $e->getMessage()];
     }
 }
+
 
 
 // UPDATE STUDENT INFORMATION

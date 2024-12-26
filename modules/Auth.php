@@ -5,7 +5,7 @@ class Auth {
     private $encryptionKey;
 
     public function __construct($pdo) {
-        $this->encryptionKey = 'sampleKey01'; // Secure key for AES encryption
+        $this->encryptionKey = 'sampleKey01';
 
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
@@ -14,19 +14,51 @@ class Auth {
 
     // Encrypt data for storage
     public function encryptData($data) {
-        $key = substr(hash('sha256', $this->encryptionKey, true), 0, 32); // 32-byte key for AES-256
-        $iv = openssl_random_pseudo_bytes(16); // 16-byte IV
+        $key = substr(hash('sha256', $this->encryptionKey, true), 0, 32); 
+        $iv = openssl_random_pseudo_bytes(16);
+
         $encrypted = openssl_encrypt($data, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+
+        if ($encrypted === false) {
+            throw new Exception("Encryption failed.");
+        }
+
         return base64_encode($encrypted . '::' . $iv);
     }
 
     // Decrypt data
     public function decryptData($data) {
-        $key = substr(hash('sha256', $this->encryptionKey, true), 0, 32);
-        list($encryptedData, $iv) = explode('::', base64_decode($data), 2);
+    $key = substr(hash('sha256', $this->encryptionKey, true), 0, 32);
+
+    try {
+        $decodedData = base64_decode($data);
+        if ($decodedData === false) {
+            throw new Exception("Base64 decoding failed.");
+        }
+
+        $parts = explode('::', $decodedData, 2); // Limit to 2 parts
+        if (count($parts) !== 2) {
+            throw new Exception("Invalid data format. Expected ciphertext and IV.");
+        }
+
+        list($encryptedData, $iv) = $parts;
+
+        if (strlen($iv) !== 16) {
+            throw new Exception("Invalid IV length. Must be 16 bytes.");
+        }
+
         $decrypted = openssl_decrypt($encryptedData, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+
+        if ($decrypted === false) {
+            throw new Exception("Decryption failed.");
+        }
+
         return $decrypted;
+    } catch (Exception $e) {
+        error_log("Decryption error: " . $e->getMessage());
+        return null;
     }
+}
 
     // Hash a password securely
     public function hashPassword($password) {

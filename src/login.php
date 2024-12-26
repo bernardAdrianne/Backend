@@ -72,8 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        const key = CryptoJS.enc.Utf8.parse('sampleKey01'); // Same key as in PHP
-        const iv = CryptoJS.enc.Utf8.parse(CryptoJS.MD5('sampleKey01').toString()); // IV derived from the key
+        const key = CryptoJS.enc.Utf8.parse('sampleKey01'); 
+        const iv = CryptoJS.enc.Utf8.parse(CryptoJS.MD5('sampleKey01').toString()); 
 
         function encryptPassword(password) {
             const encrypted = CryptoJS.AES.encrypt(password, key, {
@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const passwordField = document.querySelector('#password');
             const encryptedPassword = encryptPassword(passwordField.value);
 
-            passwordField.value = encryptedPassword; // Replace the plaintext password with encrypted
+            passwordField.value = encryptedPassword; 
 
             e.target.submit(); // Submit the form
         });

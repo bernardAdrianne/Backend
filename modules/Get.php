@@ -17,7 +17,7 @@ function getAllStudents($pdo) {
             $student['email'] = $auth->decryptData($student['email']);
             $student['address'] = $auth->decryptData($student['address']);
         }
-    
+        
         return $students;
     } catch (PDOException $e) {
         return ['error' => true, 'message' => "Failed to fetch students: " . $e->getMessage()];
