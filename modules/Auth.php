@@ -5,59 +5,32 @@ class Auth {
     private $encryptionKey;
 
     public function __construct($pdo) {
-        $this->encryptionKey = 'sampleKey01'; 
+        $this->encryptionKey = 'sampleKey01'; // Secure key for AES encryption
 
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
     }
 
+    // Encrypt data for storage
     public function encryptData($data) {
-        return openssl_encrypt(
-            $data, 
-            'AES-256-CBC', 
-            $this->encryptionKey, 
-            0, 
-            substr(hash('sha256', $this->encryptionKey), 0, 16)
-        );
+        $key = substr(hash('sha256', $this->encryptionKey, true), 0, 32); // 32-byte key for AES-256
+        $iv = openssl_random_pseudo_bytes(16); // 16-byte IV
+        $encrypted = openssl_encrypt($data, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        return base64_encode($encrypted . '::' . $iv);
     }
 
+    // Decrypt data
     public function decryptData($data) {
-        return openssl_decrypt(
-            $data, 
-            'AES-256-CBC', 
-            $this->encryptionKey, 
-            0, 
-            substr(hash('sha256', $this->encryptionKey), 0, 16)
-        );
+        $key = substr(hash('sha256', $this->encryptionKey, true), 0, 32);
+        list($encryptedData, $iv) = explode('::', base64_decode($data), 2);
+        $decrypted = openssl_decrypt($encryptedData, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        return $decrypted;
     }
-    
-    // public function hashPassword($password) {
-    //     return password_hash($password, PASSWORD_BCRYPT);
-    // }
 
-    // public function verifyPassword($password, $hash) {
-    //     return password_verify($password, $hash);
-    // }
-
-    //  // Check if the user is authenticated
-    // public function isAuthenticated() {
-    //     return isset($_SESSION['admin_id']); 
-    // }
-
-    // Hash a password with a 22-character salt
+    // Hash a password securely
     public function hashPassword($password) {
-        $salt = $this->generateSalt(22); // Generate a 22-character salt
-        $options = [
-            'cost' => 10, // Adjust cost for performance (default is 10)
-            'salt' => $salt, // Add the custom salt
-        ];
-        return password_hash($password, PASSWORD_BCRYPT, $options);
-    }
-
-    // Generate a random 22-character salt
-    private function generateSalt($length = 22) {
-        return substr(str_replace('+', '.', base64_encode(random_bytes($length))), 0, $length);
+        return password_hash($password, PASSWORD_BCRYPT);
     }
 
     // Verify a password
@@ -67,7 +40,8 @@ class Auth {
 
     // Check if the user is authenticated
     public function isAuthenticated() {
-        return isset($_SESSION['admin_id']); 
+        return isset($_SESSION['admin_id']);
     }
 }
+
 ?>

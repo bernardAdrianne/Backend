@@ -75,7 +75,7 @@ try {
                             http_response_code(409);
                             echo json_encode(['error' => true, 'message' => 'Admin already exists.']);
                         } else {
-                            $passwordHash = $auth->hashPassword($password);
+                            $passwordHash = $auth->hashPassword($password); 
                             $stmt = $pdo->prepare("INSERT INTO admin (email, username, password) VALUES (:email, :username, :password)");
                             $stmt->execute([':email' => $email, ':username' => $username, ':password' => $passwordHash]);
 
@@ -117,22 +117,22 @@ try {
             }
             break;
 
-            case 'DELETE':
-                if (preg_match('#^/delStudent/(\d+)$#', $path, $matches)) {
-                    $id = (int)$matches[1];
-                    echo json_encode(deleteStudent($pdo, $id));
-                    echo json_encode($result);
-                } else {
-                    http_response_code(404);
-                    echo json_encode(['error' => true, 'message' => 'Endpoint not found']);
-                }
-                break;
-    
-            default:
-                http_response_code(405);
-                echo json_encode(['error' => true, 'message' => 'Method not allowed']);
-                break;
-        }
+        case 'DELETE':
+            if (preg_match('#^/delStudent/(\d+)$#', $path, $matches)) {
+                $id = (int)$matches[1];
+                echo json_encode(deleteStudent($pdo, $id));
+                echo json_encode($result);
+            } else {
+                http_response_code(404);
+                echo json_encode(['error' => true, 'message' => 'Endpoint not found']);
+            }
+            break;
+
+        default:
+            http_response_code(405);
+            echo json_encode(['error' => true, 'message' => 'Method not allowed']);
+            break;
+    }
 } catch (Exception $e) {
     http_response_code(403);
     echo json_encode(['error' => true, 'message' => $e->getMessage()]);
